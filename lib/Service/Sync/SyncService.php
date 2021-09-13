@@ -113,6 +113,7 @@ class SyncService {
 								Mailbox $mailbox,
 								int $criteria,
 								array $knownIds = null,
+								?int $highestKnownUid,
 								bool $partialOnly,
 								string $sortOrder = IMailSearch::ORDER_NEWEST_FIRST,
 								string $filter = null): Response {
@@ -136,6 +137,7 @@ class SyncService {
 			$account,
 			$mailbox,
 			$knownIds ?? [],
+			$highestKnownUid,
 			$sortOrder,
 			$query
 		);
@@ -156,26 +158,22 @@ class SyncService {
 	private function getDatabaseSyncChanges(Account $account,
 											Mailbox $mailbox,
 											array $knownIds,
+											?int $highestKnownUid,
 											string $sortOrder,
 											?SearchQuery $query): Response {
-		if ($sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
-			/**
-			 * In this sort preference the user will see their oldest messages on top,
-			 * then there will likely be a few pages of slightly newer messages and
-			 * at the end the latest messages are found. So before we can append the
-			 * messages that just came in we would need to load those pages one after
-			 * the other (for performance reasons).
-			 *
-			 * TODO: store the highest known UID as property of the mailbox and keep
-			 *       it in sync with the front-end. Then the front-end can determine
-			 *       whether the last page is already reached and then ask for new messages
-			 *       in the background sync
-			 */
-			$newIds = [];
-		} else if (empty($knownIds)) {
+		if (empty($knownIds) && $highestKnownUid === null) {
+			// The front-end previously saw the full mailbox, but it was empty.
+			// So we return all currently known IDs and return them as new.
 			$newIds = $this->messageMapper->findAllIds($mailbox);
 		} else {
-			$newIds = $this->messageMapper->findNewIds($mailbox, $knownIds);
+			// The front end possibly had a list of messages. Now we try to find the
+			// newer ones but keep the previously highest UID in consideration to
+			// prevent loading messages between the currently shown list and the
+			// actually new messages. This is relevant for oldest-first sorting of
+			// a larger mailbox where only a few of the oldest messages are shown,
+			// then there are pages not yet loaded and least you'll have the actually
+			// new messages.
+			$newIds = $this->messageMapper->findNewIds($mailbox, $knownIds, $highestKnownUid);
 		}
 
 		if ($query !== null) {
@@ -203,7 +201,8 @@ class SyncService {
 			$this->previewEnhancer->process($account, $mailbox, $new),
 			$changed,
 			$vanished,
-			$mailbox->getStats()
+			$this->messageMapper->findHighestUid($mailbox),
+			$mailbox->getStats(),
 		);
 	}
 }

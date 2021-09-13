@@ -477,8 +477,9 @@ export default {
 		}
 
 		const ids = getters.getEnvelopes(mailboxId, query).map((env) => env.databaseId)
-		logger.debug(`mailbox sync of ${mailboxId} (${query}) has ${ids.length} known IDs`)
-		return syncEnvelopes(mailbox.accountId, mailboxId, ids, query, init, getters.getPreference('sort-order'))
+		const highest = mailbox.highestKnownUid
+		logger.debug(`mailbox sync of ${mailboxId} (${query}) has ${ids.length} known IDs. ${highest} is the highest known UID in the cache`, {mailbox})
+		return syncEnvelopes(mailbox.accountId, mailboxId, ids, mailbox.highestKnownUid, query, init, getters.getPreference('sort-order'))
 			.then((syncData) => {
 				logger.debug(`mailbox ${mailboxId} (${query}) synchronized, ${syncData.newMessages.length} new, ${syncData.changedMessages.length} changed and ${syncData.vanishedMessages.length} vanished messages`)
 

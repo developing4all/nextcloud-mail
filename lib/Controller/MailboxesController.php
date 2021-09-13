@@ -145,6 +145,7 @@ class MailboxesController extends Controller {
 	 *
 	 * @param int $id
 	 * @param int[] $ids
+	 * @param int|null $highestKnownUid
 	 * @param bool $init
 	 * @param string $sortOrder
 	 * @psalm-param IMailSearch::ORDER_* $sortOrder
@@ -155,7 +156,8 @@ class MailboxesController extends Controller {
 	 * @throws ServiceException
 	 */
 	public function sync(int $id,
-						 array $ids = [],
+						 array $ids,
+						 ?int $highestKnownUid,
 						 bool $init = false,
 						 string $sortOrder = IMailSearch::ORDER_NEWEST_FIRST,
 						 string $query = null): JSONResponse {
@@ -170,6 +172,7 @@ class MailboxesController extends Controller {
 				array_map(function ($id) {
 					return (int)$id;
 				}, $ids),
+				$highestKnownUid,
 				!$init,
 				$sortOrder,
 				$query

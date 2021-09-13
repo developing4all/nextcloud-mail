@@ -82,6 +82,7 @@ class Mailbox extends Entity implements JsonSerializable {
 	protected $selectable;
 	protected $specialUse;
 	protected $syncInBackground;
+	private $highestKnownUid = null;
 
 	/**
 	 * @var int
@@ -161,6 +162,11 @@ class Mailbox extends Entity implements JsonSerializable {
 			'mailboxes' => [],
 			'syncInBackground' => ($this->getSyncInBackground() === true),
 			'unread' => $this->unseen,
+			'highestKnownUid' => $this->highestKnownUid,
 		];
+	}
+
+	public function setHighestKnownUid(?int $uid) {
+		$this->highestKnownUid = $uid;
 	}
 }

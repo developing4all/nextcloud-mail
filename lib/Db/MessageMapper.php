@@ -67,9 +67,9 @@ class MessageMapper extends QBMapper {
 	/** @var PerformanceLogger */
 	private $performanceLogger;
 
-	public function __construct(IDBConnection $db,
-								ITimeFactory $timeFactory,
-								TagMapper $tagMapper,
+	public function __construct(IDBConnection     $db,
+								ITimeFactory      $timeFactory,
+								TagMapper         $tagMapper,
 								PerformanceLogger $performanceLogger) {
 		parent::__construct($db, 'mail_messages');
 		$this->timeFactory = $timeFactory;
@@ -469,7 +469,7 @@ class MessageMapper extends QBMapper {
 		$perf->step("Untagged messages");
 	}
 
-	public function getTags(Message $message) : array {
+	public function getTags(Message $message): array {
 		$mqb = $this->db->getQueryBuilder();
 		$mqb->select('tag_id')
 			->from('mail_message_tags')
@@ -627,11 +627,11 @@ class MessageMapper extends QBMapper {
 	 *
 	 * @return int[]
 	 */
-	public function findIdsByQuery(Mailbox $mailbox,
+	public function findIdsByQuery(Mailbox     $mailbox,
 								   SearchQuery $query,
-								   ?int $limit,
-								   array $uids = null,
-								   string $sortOrder): array {
+								   ?int        $limit,
+								   array       $uids = null,
+								   string      $sortOrder): array {
 		$qb = $this->db->getQueryBuilder();
 
 		if ($this->needDistinct($query)) {
@@ -721,7 +721,7 @@ class MessageMapper extends QBMapper {
 
 		if ($sortOrder === IMailSearch::ORDER_NEWEST_FIRST) {
 			$select->orderBy('m.sent_at', 'desc');
-		} else if ($sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
+		} elseif ($sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
 			$select->orderBy('m.sent_at', 'asc');
 		} else {
 			throw new InvalidArgumentException("invalid sort order $sortOrder");
@@ -1037,7 +1037,7 @@ class MessageMapper extends QBMapper {
 	 * @param array $ids
 	 * @return int[]
 	 */
-	public function findNewIds(Mailbox $mailbox, array $ids): array {
+	public function findNewIds(Mailbox $mailbox, array $ids, ?int $highestKnownUid): array {
 		$select = $this->db->getQueryBuilder();
 		$subSelect = $this->db->getQueryBuilder();
 
@@ -1057,16 +1057,21 @@ class MessageMapper extends QBMapper {
 				$subSelect->expr()->orX(...$inExpression)
 			);
 
+		$wheres = [
+			$select->expr()->eq('m.mailbox_id', $select->createNamedParameter($mailbox->getId(), IQueryBuilder::PARAM_INT)),
+			$select->expr()->andX(...$notInExpression),
+			$select->expr()->gt('m.sent_at', $select->createFunction('(' . $subSelect->getSQL() . ')'), IQueryBuilder::PARAM_INT),
+			$select->expr()->isNull('m2.id'),
+		];
+		if ($highestKnownUid !== null) {
+			// Don't consider old "new messages" as new when their UID has already been seen before
+			$wheres[] = $select->expr()->gt('m.uid', $select->createNamedParameter($highestKnownUid, IQueryBuilder::PARAM_INT));
+		}
 		$select
 			->select('m.id')
 			->from($this->getTableName(), 'm')
 			->leftJoin('m', $this->getTableName(), 'm2', 'm.mailbox_id = m2.mailbox_id and m.thread_root_id = m2.thread_root_id and m.sent_at < m2.sent_at')
-			->where(
-				$select->expr()->eq('m.mailbox_id', $select->createNamedParameter($mailbox->getId(), IQueryBuilder::PARAM_INT)),
-				$select->expr()->andX(...$notInExpression),
-				$select->expr()->gt('m.sent_at', $select->createFunction('(' . $subSelect->getSQL() . ')'), IQueryBuilder::PARAM_INT),
-				$select->expr()->isNull('m2.id')
-			)
+			->where(...$wheres)
 			->orderBy('m.sent_at', 'desc');
 
 		return $this->findIds($select);

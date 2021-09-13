@@ -138,7 +138,11 @@ class MailManager implements IMailManager {
 	public function getMailboxes(Account $account): array {
 		$this->mailboxSync->sync($account, $this->logger);
 
-		return $this->mailboxMapper->findAll($account);
+		return array_map(function (Mailbox $mailbox) {
+			$mailbox->setHighestKnownUid($this->dbMessageMapper->findHighestUid($mailbox));
+
+			return $mailbox;
+		}, $this->mailboxMapper->findAll($account));
 	}
 
 	/**
