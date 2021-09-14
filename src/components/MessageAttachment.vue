@@ -20,42 +20,47 @@
   -->
 
 <template>
-	<div class="attachment" @click="download">
+	<div class="attachment">
 		<img v-if="isImage" class="mail-attached-image" :src="url">
 		<img class="attachment-icon" :src="mimeUrl">
 		<span class="attachment-name"
 			:title="label">{{ name }}
 			<span class="attachment-size">({{ humanReadable(size) }})</span>
 		</span>
-		<button
-			v-if="isCalendarEvent"
-			class="button attachment-import calendar"
-			:class="{'icon-add': !loadingCalendars, 'icon-loading-small': loadingCalendars}"
-			:disabled="loadingCalendars"
-			:title="t('mail', 'Import into calendar')"
-			@click.stop="loadCalendars" />
-		<button class="button icon-download attachment-download" :title="t('mail', 'Download attachment')" />
-		<button
-			class="attachment-save-to-cloud"
-			:class="{'icon-folder': !savingToCloud, 'icon-loading-small': savingToCloud}"
-			:disabled="savingToCloud"
-			:title="t('mail', 'Save to Files')"
-			@click.stop="saveToCloud" />
-		<div
-			v-on-click-outside="closeCalendarPopover"
-			class="popovermenu bubble attachment-import-popover hidden"
-			:class="{open: showCalendarPopover}">
-			<PopoverMenu :menu="calendarMenuEntries" />
-		</div>
+		<Actions>
+			<ActionButton
+				v-if="isCalendarEvent"
+				class="attachment-import calendar"
+				:class="{'icon-add': !loadingCalendars, 'icon-loading-small': loadingCalendars}"
+				:disabled="loadingCalendars"
+				:title="t('mail', 'Import into calendar')"
+				@click.stop="loadCalendars" />
+			<ActionButton class="icon-download attachment-download" :title="t('mail', 'Download attachment')" />
+			<ActionButton
+				class="attachment-save-to-cloud"
+				:class="{'icon-folder': !savingToCloud, 'icon-loading-small': savingToCloud}"
+				:disabled="savingToCloud"
+				:title="t('mail', 'Save to Files')"
+				@click.stop="saveToCloud" />
+			<div
+				v-on-click-outside="closeCalendarPopover"
+				class="popovermenu bubble attachment-import-popover hidden"
+				:class="{open: showCalendarPopover}">
+				<PopoverMenu :menu="calendarMenuEntries" />
+			</div>
+		</Actions>
 	</div>
 </template>
 
 <script>
+
 import { formatFileSize } from '@nextcloud/files'
 import { mixin as onClickOutside } from 'vue-on-click-outside'
 import { translate as t } from '@nextcloud/l10n'
 import { getFilePickerBuilder } from '@nextcloud/dialogs'
 import PopoverMenu from '@nextcloud/vue/dist/Components/PopoverMenu'
+import Actions from '@nextcloud/vue/dist/Components/Actions'
+import ActionButton from '@nextcloud/vue/dist/Components/ActionButton'
 
 import Logger from '../logger'
 
@@ -66,8 +71,9 @@ export default {
 	name: 'MessageAttachment',
 	components: {
 		PopoverMenu,
+		Actions,
+		ActionButton,
 	},
-	mixins: [onClickOutside],
 	props: {
 		id: {
 			type: String,
@@ -212,40 +218,6 @@ export default {
 .mail-attached-image:hover {
 	opacity: 0.8;
 }
-
-.attachment-save-to-cloud,
-.attachment-download,
-.attachment-import {
-	position: absolute;
-	padding: 21px;
-	margin: 0;
-	bottom: 6px;
-	background-color: transparent;
-	border-color: transparent;
-}
-
-.attachment-save-to-cloud {
-	right: 0;
-}
-
-.attachment-download {
-	right: 32px;
-	opacity: 0.6;
-}
-
-.attachment-import {
-	right: 64px;
-}
-
-.attachment-import-popover {
-	right: 32px;
-	top: 42px;
-}
-
-.attachment-import-popover::after {
-	right: 32px;
-}
-
 .attachment-name {
 	display: inline-block;
 	width: calc(100% - 72px);
@@ -264,5 +236,9 @@ export default {
 .attachment-icon {
 	vertical-align: middle;
 	text-align: left;
+}
+.action-item {
+	display: inline-block !important;
+	position: relative !important;
 }
 </style>

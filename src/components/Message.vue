@@ -38,14 +38,7 @@
 			:body="message.body"
 			:signature="message.signature"
 			:message="message" />
-		<Popover v-if="message.attachments[0]" class="attachment-popover">
-			<Actions slot="trigger">
-				<ActionButton icon="icon-public icon-attachment">
-					{{ t('mail', 'Attachments') }}
-				</ActionButton>
-			</Actions>
-			<MessageAttachments v-close-popover="true" :attachments="message.attachments" :envelope="envelope" />
-		</Popover>
+		<MessageAttachments :attachments="message.attachments" :envelope="envelope" />
 		<div id="reply-composer" />
 	</div>
 </template>
