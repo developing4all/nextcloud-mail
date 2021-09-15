@@ -31,17 +31,22 @@
 			<ActionButton
 				v-if="isCalendarEvent"
 				class="attachment-import calendar"
-				:class="{'icon-add': !loadingCalendars, 'icon-loading-small': loadingCalendars}"
+				:icon="{'icon-add': !loadingCalendars, 'icon-loading-small': loadingCalendars}"
 				:disabled="loadingCalendars"
-				:title="t('mail', 'Import into calendar')"
-				@click.stop="loadCalendars" />
-			<ActionButton class="icon-download attachment-download" :title="t('mail', 'Download attachment')" />
+				@click.stop="loadCalendars">
+				{{ t('mail', 'Import into calendar') }}
+			</ActionButton>
+			<ActionButton icon="icon-download"
+				class="attachment-download">
+				{{ t('mail', 'Download attachment') }}
+			</ActionButton>
 			<ActionButton
 				class="attachment-save-to-cloud"
-				:class="{'icon-folder': !savingToCloud, 'icon-loading-small': savingToCloud}"
+				:icon="{'icon-folder': !savingToCloud, 'icon-loading-small': savingToCloud}"
 				:disabled="savingToCloud"
-				:title="t('mail', 'Save to Files')"
-				@click.stop="saveToCloud" />
+				@click.stop="saveToCloud">
+				{{ t('mail', 'Save to Files') }}
+			</ActionButton>
 			<div
 				v-on-click-outside="closeCalendarPopover"
 				class="popovermenu bubble attachment-import-popover hidden"
@@ -55,7 +60,6 @@
 <script>
 
 import { formatFileSize } from '@nextcloud/files'
-import { mixin as onClickOutside } from 'vue-on-click-outside'
 import { translate as t } from '@nextcloud/l10n'
 import { getFilePickerBuilder } from '@nextcloud/dialogs'
 import PopoverMenu from '@nextcloud/vue/dist/Components/PopoverMenu'
@@ -215,6 +219,10 @@ export default {
 	border-radius: var(--border-radius);
 	cursor: pointer;
 }
+.attachment-import-popover {
+	right: 32px;
+	top: 42px;
+}
 .mail-attached-image:hover {
 	opacity: 0.8;
 }
@@ -225,6 +233,7 @@ export default {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	vertical-align: middle;
+	margin-bottom: 20px;
 }
 
 /* show attachment size less prominent */
@@ -236,9 +245,14 @@ export default {
 .attachment-icon {
 	vertical-align: middle;
 	text-align: left;
+	margin-bottom: 20px;
 }
 .action-item {
 	display: inline-block !important;
 	position: relative !important;
+}
+.mail-message-attachments {
+	overflow-x: auto;
+	overflow-y: auto;
 }
 </style>

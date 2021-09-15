@@ -143,4 +143,8 @@ export default {
 .oc-dialog {
 	z-index: 10000000;
 }
+.mail-message-attachments {
+	overflow-x: auto;
+	overflow-y: auto;
+}
 </style>
