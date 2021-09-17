@@ -63,17 +63,17 @@
 		<h4>{{ t('mail', 'Message sorting order') }}</h4>
 		<p class="app-settings">
 			<CheckboxRadioSwitch :checked.sync="sortOrderNew"
-				@update:checked="onToggleSortOrder"
 				type="radio"
 				value="newest-first"
-				name="sort-order-radio">
+				name="sort-order-radio"
+				@update:checked="onToggleSortOrder">
 				{{ t('mail', 'Newest first') }}
 			</CheckboxRadioSwitch>
 			<CheckboxRadioSwitch :checked.sync="sortOrderNew"
-				@update:checked="onToggleSortOrder"
 				type="radio"
 				value="oldest-first"
-				name="sort-order-radio">
+				name="sort-order-radio"
+				@update:checked="onToggleSortOrder">
 				{{ t('mail', 'Oldest first') }}
 			</CheckboxRadioSwitch>
 		</p>

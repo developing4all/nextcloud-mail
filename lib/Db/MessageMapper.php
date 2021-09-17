@@ -25,7 +25,6 @@ declare(strict_types=1);
 
 namespace OCA\Mail\Db;
 
-use Exception;
 use InvalidArgumentException;
 use OCA\Mail\Account;
 use OCA\Mail\Address;
@@ -174,9 +173,9 @@ class MessageMapper extends QBMapper {
 		}
 		if ($sortOrder === IMailSearch::ORDER_NEWEST_FIRST) {
 			$query->orderBy('sent_at', 'desc');
-		} else if ($sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
+		} elseif ($sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
 			$query->orderBy('sent_at', 'asc');
-		} else if ($sortOrder !== null) {
+		} elseif ($sortOrder !== null) {
 			throw new InvalidArgumentException('Invalid sort orderd');
 		}
 
@@ -719,7 +718,7 @@ class MessageMapper extends QBMapper {
 			$select->andWhere(
 				$qb->expr()->lt('m.sent_at', $qb->createNamedParameter($query->getCursor(), IQueryBuilder::PARAM_INT))
 			);
-		} else if ($query->getCursor() !== null && $sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
+		} elseif ($query->getCursor() !== null && $sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
 			$select->andWhere(
 				$qb->expr()->gt('m.sent_at', $qb->createNamedParameter($query->getCursor(), IQueryBuilder::PARAM_INT))
 			);

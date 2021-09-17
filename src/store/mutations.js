@@ -19,15 +19,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import {curry} from 'ramda'
+import { curry } from 'ramda'
 import escapeRegExp from 'lodash/fp/escapeRegExp'
 import orderBy from 'lodash/fp/orderBy'
 import uniq from 'lodash/fp/uniq'
 import Vue from 'vue'
 
-import {sortMailboxes} from '../imap/MailboxSorter'
-import {normalizedEnvelopeListId} from './normalization'
-import {UNIFIED_ACCOUNT_ID} from './constants'
+import { sortMailboxes } from '../imap/MailboxSorter'
+import { normalizedEnvelopeListId } from './normalization'
+import { UNIFIED_ACCOUNT_ID } from './constants'
 
 const addMailboxToState = curry((state, account, mailbox) => {
 	mailbox.accountId = account.id

@@ -35,7 +35,6 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IUser;
 
 interface IMailSearch {
-
 	public const ORDER_NEWEST_FIRST = 'newest-first';
 	public const ORDER_OLDEST_FIRST = 'oldest-first';
 

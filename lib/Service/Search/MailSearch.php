@@ -25,9 +25,7 @@ declare(strict_types=1);
 
 namespace OCA\Mail\Service\Search;
 
-use Exception;
 use Horde_Imap_Client;
-use InvalidArgumentException;
 use OCA\Mail\Account;
 use OCA\Mail\Contracts\IMailSearch;
 use OCA\Mail\Db\Mailbox;
