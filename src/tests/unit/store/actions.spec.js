@@ -50,6 +50,7 @@ describe('Vuex store actions', () => {
 				getMailboxes: sinon.stub(),
 				getEnvelope: sinon.stub(),
 				getEnvelopes: sinon.stub(),
+				getPreference: sinon.stub(),
 			},
 		}
 	})
@@ -134,6 +135,7 @@ describe('Vuex store actions', () => {
 		context.getters.getMailbox.returns({
 			isUnified: true,
 		})
+		context.getters.getPreference.withArgs('sort-order').returns('newest-first')
 
 		const envelopes = actions.fetchEnvelopes(context, {
 			mailboxId: UNIFIED_INBOX_ID,
@@ -192,13 +194,13 @@ describe('Vuex store actions', () => {
 			},
 		])
 		expect(context.dispatch).to.have.been.calledOnce
-		expect(context.commit).to.have.been.calledWith('addEnvelope', {
-			envelope: {
+		expect(context.commit).to.have.been.calledWith('addEnvelopes', {
+			envelopes: [{
 				databaseId: 123,
 				mailboxId: 21,
 				uid: 321,
 				subject: 'msg1',
-			},
+			}],
 			query: undefined,
 		})
 	})
@@ -382,6 +384,7 @@ describe('Vuex store actions', () => {
 		})
 
 		it('fetches the inbox first', async() => {
+			context.getters.getPreference.withArgs('sort-order').returns('newest-first')
 			context.getters.accounts.push({
 				id: 13,
 			})
