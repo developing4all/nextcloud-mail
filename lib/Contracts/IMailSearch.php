@@ -61,7 +61,7 @@ interface IMailSearch {
 	 * @param string $sortOrder
 	 * @psalm-param IMailSearch::ORDER_* $sortOrder
 	 *
-	 * @return Message[]
+	 * @return Result
 	 *
 	 * @throws ClientException
 	 * @throws ServiceException

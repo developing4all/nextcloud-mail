@@ -157,7 +157,7 @@ class MessageMapper extends QBMapper {
 	 * @param Mailbox $mailbox
 	 * @param int|null $limit
 	 * @param string|null $sortOrder
-	 * @psalm-param IMailSearch::SORT_*|null $sortOrder
+	 * @psalm-param IMailSearch::ORDER_* $sortOrder
 	 *
 	 * @return int[]
 	 */
