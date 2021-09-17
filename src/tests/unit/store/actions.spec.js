@@ -403,12 +403,14 @@ describe('Vuex store actions', () => {
 					databaseId: 11,
 					specialRole: 'inbox',
 					envelopeLists: {},
+					lastMessageTimestamps: {},
 				},
 				{
 					name: 'Drafts',
 					databaseId: 12,
 					specialRole: 'draft',
 					envelopeLists: {},
+					lastMessageTimestamps: {},
 				},
 			])
 			context.getters.getMailboxes.withArgs(26).returns([
@@ -418,6 +420,7 @@ describe('Vuex store actions', () => {
 					accountId: 26,
 					specialRole: 'inbox',
 					envelopeLists: {},
+					lastMessageTimestamps: {},
 				},
 				{
 					name: 'Drafts',
@@ -425,6 +428,7 @@ describe('Vuex store actions', () => {
 					accountId: 26,
 					specialRole: 'draft',
 					envelopeLists: {},
+					lastMessageTimestamps: {},
 				},
 			])
 
@@ -471,6 +475,7 @@ describe('Vuex store actions', () => {
 					envelopeLists: {
 						'': [],
 					},
+					lastMessageTimestamps: {},
 				},
 				{
 					name: 'Drafts',
@@ -479,6 +484,7 @@ describe('Vuex store actions', () => {
 					envelopeLists: {
 						'': [],
 					},
+					lastMessageTimestamps: {},
 				},
 			])
 			context.getters.getMailboxes.withArgs(26).returns([
@@ -490,6 +496,7 @@ describe('Vuex store actions', () => {
 					envelopeLists: {
 						'': [],
 					},
+					lastMessageTimestamps: {},
 				},
 				{
 					name: 'Drafts',
@@ -499,6 +506,7 @@ describe('Vuex store actions', () => {
 					envelopeLists: {
 						'': [],
 					},
+					lastMessageTimestamps: {},
 				},
 			])
 			context.dispatch
