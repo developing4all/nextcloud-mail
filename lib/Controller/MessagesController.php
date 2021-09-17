@@ -178,7 +178,7 @@ class MessagesController extends Controller {
 			return new JSONResponse([], Http::STATUS_FORBIDDEN);
 		}
 
-		$this->logger->debug("loading messages of folder <$mailboxId>");
+		$this->logger->debug("loading messages of mailbox <$mailboxId>");
 
 		return new JSONResponse(
 			$this->mailSearch->findMessages(

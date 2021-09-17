@@ -31,6 +31,7 @@ import {
 	head,
 	identity,
 	last,
+	lt,
 	map,
 	pipe,
 	prop,
@@ -268,8 +269,8 @@ export default {
 		const envelope = await fetchEnvelope(id)
 		// Only commit if not undefined (not found)
 		if (envelope) {
-			commit('addEnvelope', {
-				envelope,
+			commit('addEnvelopes', {
+				envelopes: [envelope],
 			})
 		}
 
@@ -296,13 +297,11 @@ export default {
 				andThen(combineEnvelopeLists(getters.getPreference('sort-order'))),
 				andThen(sliceToPage),
 				andThen(
-					tap(
-						map((envelope) =>
-							commit('addEnvelope', {
-								envelope,
-								query,
-							})
-						)
+					tap((envelopes) =>
+						commit('addEnvelopes', {
+							envelopes,
+							query,
+						})
 					)
 				)
 			)
@@ -313,14 +312,19 @@ export default {
 		return pipe(
 			fetchEnvelopes,
 			andThen(
-				tap(
-					map((envelope) =>
-						commit('addEnvelope', {
-							query,
-							envelope,
-						})
-					)
-				)
+				(result) => {
+					console.info('RESULT', query, result)
+					commit('updateMailboxLastMessageTimestamp', {
+						mailbox,
+						query,
+						timestamp: result.lastMessageTimestamp,
+					})
+					commit('addEnvelopes', {
+						query,
+						envelopes: result.messages,
+					})
+					return result.messages
+				}
 			)
 		)(mailboxId, query, undefined, PAGE_SIZE, getters.getPreference('sort-order'))
 	},
@@ -345,13 +349,14 @@ export default {
 			if (cursor === undefined) {
 				throw new Error('Unified list has no tail')
 			}
+			const newestFirst = getters.getPreference('sort-order') === 'newest-first'
 			const nextLocalUnifiedEnvelopes = pipe(
 				findIndividualMailboxes(getters.getMailboxes, mailbox.specialRole),
 				map(getIndivisualLists(query)),
 				combineEnvelopeLists(getters.getPreference('sort-order')),
 				filter(
 					where({
-						dateInt: gt(cursor), // TODO: make it work
+						dateInt: newestFirst ? gt(cursor) : lt(cursor),
 					})
 				),
 				slice(0, quantity)
@@ -362,7 +367,17 @@ export default {
 			// it ends after, we have all the relevant data already
 			const needsFetch = curry((query, nextEnvelopes, f) => {
 				const c = individualCursor(query, f)
-				return nextEnvelopes.length < quantity || (c <= head(nextEnvelopes).dateInt && c >= last(nextEnvelopes).dateInt)
+				if (nextEnvelopes.length < quantity) {
+					return true
+				}
+
+				if (newestFirst && c <= head(nextEnvelopes).dateInt && c >= last(nextEnvelopes).dateInt) {
+					return true
+				} else if (!newestFirst && c <= head(nextEnvelopes).dateInt && c <= last(nextEnvelopes).dateInt) {
+					return true
+				}
+
+				return false
 			})
 
 			const mailboxesToFetch = (accounts) =>
@@ -373,6 +388,7 @@ export default {
 			const mbs = mailboxesToFetch(getters.accounts)
 
 			if (rec && mbs.length) {
+				logger.debug('some mailboxes need fetching', mbs.length)
 				return pipe(
 					map((mb) =>
 						dispatch('fetchNextEnvelopes', {
@@ -393,13 +409,12 @@ export default {
 				)(mbs)
 			}
 
+			logger.debug('next unified page can be built from local data')
 			const envelopes = nextLocalUnifiedEnvelopes(getters.accounts)
-			envelopes.map((envelope) =>
-				commit('addEnvelope', {
-					query,
-					envelope,
-				})
-			)
+			commit('addEnvelopes', {
+				query,
+				envelopes,
+			})
 			return envelopes
 		}
 
@@ -418,16 +433,15 @@ export default {
 			return Promise.reject(new Error('Cannot find last envelope. Required for the mailbox cursor'))
 		}
 
-		return fetchEnvelopes(mailboxId, query, lastEnvelope.dateInt, quantity, getters.getPreference('sort-order')).then((envelopes) => {
+		return fetchEnvelopes(mailboxId, query, lastEnvelope.dateInt, quantity, getters.getPreference('sort-order')).then((result) => {
+			const envelopes = result.messages
 			logger.debug(`fetched ${envelopes.length} messages for mailbox ${mailboxId}`, {
 				envelopes,
 			})
-			envelopes.forEach((envelope) =>
-				commit('addEnvelope', {
-					query,
-					envelope,
-				})
-			)
+			commit('addEnvelopes', {
+				query,
+				envelopes,
+			})
 			return envelopes
 		})
 	},
@@ -477,19 +491,19 @@ export default {
 		}
 
 		const ids = getters.getEnvelopes(mailboxId, query).map((env) => env.databaseId)
-		const highest = mailbox.highestKnownUid
-		logger.debug(`mailbox sync of ${mailboxId} (${query}) has ${ids.length} known IDs. ${highest} is the highest known UID in the cache`, {mailbox})
-		return syncEnvelopes(mailbox.accountId, mailboxId, ids, mailbox.highestKnownUid, query, init, getters.getPreference('sort-order'))
+		const lastTimestamp = getters.getLastMessageTimestamp(mailboxId, query)
+		logger.debug(`mailbox sync of ${mailboxId} (${query}) has ${ids.length} known IDs. ${lastTimestamp} is the last known message timestamp`, { mailbox })
+		return syncEnvelopes(mailbox.accountId, mailboxId, ids, lastTimestamp, query, init, getters.getPreference('sort-order'))
 			.then((syncData) => {
-				logger.debug(`mailbox ${mailboxId} (${query}) synchronized, ${syncData.newMessages.length} new, ${syncData.changedMessages.length} changed and ${syncData.vanishedMessages.length} vanished messages`)
+				logger.debug(`mailbox ${mailboxId} (${query}) synchronized, ${syncData.newMessages.length} new, ${syncData.changedMessages.length} changed and ${syncData.vanishedMessages.length} vanished messages. ${syncData.lastMessageTimestamp} is the last known message timestamp`)
 
 				const unifiedMailbox = getters.getUnifiedMailbox(mailbox.specialRole)
 
+				commit('addEnvelopes', {
+					envelopes: syncData.newMessages,
+					query,
+				})
 				syncData.newMessages.forEach((envelope) => {
-					commit('addEnvelope', {
-						envelope,
-						query,
-					})
 					if (unifiedMailbox) {
 						commit('updateEnvelope', {
 							envelope,
@@ -508,6 +522,11 @@ export default {
 					// Already removed from unified inbox
 				})
 
+				commit('updateMailboxLastMessageTimestamp', {
+					mailbox,
+					query,
+					timestamp: syncData.lastMessageTimestamp,
+				})
 				commit('setMailboxUnreadCount', {
 					id: mailboxId,
 					unread: syncData.stats.unread,
@@ -547,13 +566,16 @@ export default {
 								return
 							}
 
+							logger.debug('fetching mailbox', mailbox.databaseId, mailbox.lastMessageTimestamps[undefined])
 							const list = mailbox.envelopeLists[normalizedEnvelopeListId(undefined)]
 							if (list === undefined) {
+								logger.debug('fetching envelopes first')
 								await dispatch('fetchEnvelopes', {
 									mailboxId: mailbox.databaseId,
 								})
 							}
 
+							logger.debug('syncing envelopes now')
 							return await dispatch('syncEnvelopes', {
 								mailboxId: mailbox.databaseId,
 							})
@@ -759,7 +781,8 @@ export default {
 			console.error('could not delete message', err)
 			const envelope = getters.getEnvelope(id)
 			if (envelope) {
-				commit('addEnvelope', { envelope })
+				// TODO: does this work? It doesn't specify a query …
+				commit('addEnvelopes', { envelopes: [envelope] })
 			} else {
 				logger.error('could not find envelope', { id })
 			}
@@ -858,7 +881,7 @@ export default {
 			await ThreadService.deleteThread(envelope.databaseId)
 			console.debug('thread removed')
 		} catch (e) {
-			commit('addEnvelope', envelope)
+			commit('addEnvelopes', { envelopes: [envelope] })
 			console.error('could not delete thread', e)
 			throw e
 		}
@@ -870,7 +893,7 @@ export default {
 			await ThreadService.moveThread(envelope.databaseId, destMailboxId)
 			console.debug('thread removed')
 		} catch (e) {
-			commit('addEnvelope', envelope)
+			commit('addEnvelopes', { envelopes: [envelope] })
 			console.error('could not move thread', e)
 			throw e
 		}

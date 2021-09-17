@@ -61,7 +61,7 @@ export const fetchThread = async(id) => {
 	return resp.data
 }
 
-export async function syncEnvelopes(accountId, id, ids, highestKnownUid, query, init = false, sortOrder) {
+export async function syncEnvelopes(accountId, id, ids, lastMessageTimestamp, query, init = false, sortOrder) {
 	const url = generateUrl('/apps/mail/api/mailboxes/{id}/sync', {
 		id,
 	})
@@ -72,7 +72,7 @@ export async function syncEnvelopes(accountId, id, ids, highestKnownUid, query, 
 			query,
 			init,
 			sortOrder,
-			highestKnownUid
+			lastMessageTimestamp,
 		})
 
 		if (response.status === 202) {
@@ -84,6 +84,7 @@ export async function syncEnvelopes(accountId, id, ids, highestKnownUid, query, 
 			newMessages: response.data.newMessages.map(amend),
 			changedMessages: response.data.changedMessages.map(amend),
 			vanishedMessages: response.data.vanishedMessages,
+			lastMessageTimestamp: response.data.lastMessageTimestamp,
 			stats: response.data.stats,
 		}
 	} catch (e) {

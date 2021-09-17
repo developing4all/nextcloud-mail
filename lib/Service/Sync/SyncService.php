@@ -113,7 +113,7 @@ class SyncService {
 								Mailbox $mailbox,
 								int $criteria,
 								array $knownIds = null,
-								?int $highestKnownUid,
+								?int $lastMessageTimestamp,
 								bool $partialOnly,
 								string $sortOrder = IMailSearch::ORDER_NEWEST_FIRST,
 								string $filter = null): Response {
@@ -137,7 +137,7 @@ class SyncService {
 			$account,
 			$mailbox,
 			$knownIds ?? [],
-			$highestKnownUid,
+			$lastMessageTimestamp,
 			$sortOrder,
 			$query
 		);
@@ -158,10 +158,10 @@ class SyncService {
 	private function getDatabaseSyncChanges(Account $account,
 											Mailbox $mailbox,
 											array $knownIds,
-											?int $highestKnownUid,
+											?int $lastMessageTimestamp,
 											string $sortOrder,
 											?SearchQuery $query): Response {
-		if (empty($knownIds) && $highestKnownUid === null) {
+		if (empty($knownIds) || $lastMessageTimestamp === null) {
 			// The front-end previously saw the full mailbox, but it was empty.
 			// So we return all currently known IDs and return them as new.
 			$newIds = $this->messageMapper->findAllIds($mailbox);
@@ -173,7 +173,7 @@ class SyncService {
 			// a larger mailbox where only a few of the oldest messages are shown,
 			// then there are pages not yet loaded and least you'll have the actually
 			// new messages.
-			$newIds = $this->messageMapper->findNewIds($mailbox, $knownIds, $highestKnownUid);
+			$newIds = $this->messageMapper->findNewIds($mailbox, $knownIds, $lastMessageTimestamp);
 		}
 
 		if ($query !== null) {
@@ -201,7 +201,7 @@ class SyncService {
 			$this->previewEnhancer->process($account, $mailbox, $new),
 			$changed,
 			$vanished,
-			$this->messageMapper->findHighestUid($mailbox),
+			$this->messageMapper->findLastMessageTimestamp($account, $mailbox, $query, $sortOrder),
 			$mailbox->getStats(),
 		);
 	}

@@ -30,6 +30,7 @@ use OCA\Mail\Db\Mailbox;
 use OCA\Mail\Db\Message;
 use OCA\Mail\Exception\ClientException;
 use OCA\Mail\Exception\ServiceException;
+use OCA\Mail\Service\Search\Result;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IUser;
 
@@ -71,7 +72,7 @@ interface IMailSearch {
 								 ?string $filter,
 								 ?int $cursor,
 								 ?int $limit,
-								 string $sortOrder): array;
+								 string $sortOrder): Result;
 
 	/**
 	 * @param IUser $user

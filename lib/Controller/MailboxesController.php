@@ -145,7 +145,7 @@ class MailboxesController extends Controller {
 	 *
 	 * @param int $id
 	 * @param int[] $ids
-	 * @param int|null $highestKnownUid
+	 * @param int|null $lastMessageTimestamp
 	 * @param bool $init
 	 * @param string $sortOrder
 	 * @psalm-param IMailSearch::ORDER_* $sortOrder
@@ -157,7 +157,7 @@ class MailboxesController extends Controller {
 	 */
 	public function sync(int $id,
 						 array $ids,
-						 ?int $highestKnownUid,
+						 ?int $lastMessageTimestamp,
 						 bool $init = false,
 						 string $sortOrder = IMailSearch::ORDER_NEWEST_FIRST,
 						 string $query = null): JSONResponse {
@@ -172,7 +172,7 @@ class MailboxesController extends Controller {
 				array_map(function ($id) {
 					return (int)$id;
 				}, $ids),
-				$highestKnownUid,
+				$lastMessageTimestamp,
 				!$init,
 				$sortOrder,
 				$query

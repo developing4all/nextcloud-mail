@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace OCA\Mail\Db;
 
+use Exception;
 use InvalidArgumentException;
 use OCA\Mail\Account;
 use OCA\Mail\Address;
@@ -153,12 +154,31 @@ class MessageMapper extends QBMapper {
 		return $this->findUids($query);
 	}
 
-	public function findAllIds(Mailbox $mailbox): array {
+	/**
+	 * @param Mailbox $mailbox
+	 * @param int|null $limit
+	 * @param string|null $sortOrder
+	 * @psalm-param IMailSearch::SORT_*|null $sortOrder
+	 *
+	 * @return int[]
+	 */
+	public function findAllIds(Mailbox $mailbox, int $limit = null, string $sortOrder = null): array {
 		$query = $this->db->getQueryBuilder();
 
 		$query->select('id')
 			->from($this->getTableName())
 			->where($query->expr()->eq('mailbox_id', $query->createNamedParameter($mailbox->getId(), IQueryBuilder::PARAM_INT), IQueryBuilder::PARAM_INT));
+
+		if ($limit !== null) {
+			$query->setMaxResults($limit);
+		}
+		if ($sortOrder === IMailSearch::ORDER_NEWEST_FIRST) {
+			$query->orderBy('sent_at', 'desc');
+		} else if ($sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
+			$query->orderBy('sent_at', 'asc');
+		} else if ($sortOrder !== null) {
+			throw new InvalidArgumentException('Invalid sort orderd');
+		}
 
 		return $this->findIds($query);
 	}
@@ -695,9 +715,13 @@ class MessageMapper extends QBMapper {
 			);
 		}
 
-		if ($query->getCursor() !== null) {
+		if ($query->getCursor() !== null && $sortOrder === IMailSearch::ORDER_NEWEST_FIRST) {
 			$select->andWhere(
 				$qb->expr()->lt('m.sent_at', $qb->createNamedParameter($query->getCursor(), IQueryBuilder::PARAM_INT))
+			);
+		} else if ($query->getCursor() !== null && $sortOrder === IMailSearch::ORDER_OLDEST_FIRST) {
+			$select->andWhere(
+				$qb->expr()->gt('m.sent_at', $qb->createNamedParameter($query->getCursor(), IQueryBuilder::PARAM_INT))
 			);
 		}
 		// createParameter
@@ -743,6 +767,24 @@ class MessageMapper extends QBMapper {
 		return array_map(function (Message $message) {
 			return $message->getId();
 		}, $this->findEntities($select));
+	}
+
+	public function findLastMessageTimestamp(Account $account, Mailbox $mailbox, ?SearchQuery $query, string $sortOrder): ?int {
+		if ($query !== null) {
+			$lastMessageId = $this->findIdsByQuery($mailbox, $query, 1, null, IMailSearch::ORDER_NEWEST_FIRST)[0] ?? null;
+		} else {
+			$lastMessageId = $this->findAllIds($mailbox, 1, IMailSearch::ORDER_NEWEST_FIRST)[0] ?? null;
+		}
+		if ($lastMessageId === null) {
+			return null;
+		}
+
+		$lastMessages = $this->findByIds($account->getUserId(), [$lastMessageId]);
+		if (empty($lastMessages)) {
+			// Should never happen
+			return null;
+		}
+		return $lastMessages[0]->getSentAt();
 	}
 
 	public function findIdsGloballyByQuery(IUser $user, SearchQuery $query, ?int $limit, array $uids = null): array {
@@ -1037,7 +1079,7 @@ class MessageMapper extends QBMapper {
 	 * @param array $ids
 	 * @return int[]
 	 */
-	public function findNewIds(Mailbox $mailbox, array $ids, ?int $highestKnownUid): array {
+	public function findNewIds(Mailbox $mailbox, array $ids, ?int $lastMessageTimestamp): array {
 		$select = $this->db->getQueryBuilder();
 		$subSelect = $this->db->getQueryBuilder();
 
@@ -1063,12 +1105,12 @@ class MessageMapper extends QBMapper {
 			$select->expr()->gt('m.sent_at', $select->createFunction('(' . $subSelect->getSQL() . ')'), IQueryBuilder::PARAM_INT),
 			$select->expr()->isNull('m2.id'),
 		];
-		if ($highestKnownUid !== null) {
+		if ($lastMessageTimestamp !== null) {
 			// Don't consider old "new messages" as new when their UID has already been seen before
-			$wheres[] = $select->expr()->gt('m.uid', $select->createNamedParameter($highestKnownUid, IQueryBuilder::PARAM_INT));
+			$wheres[] = $select->expr()->gt('m.sent_at', $select->createNamedParameter($lastMessageTimestamp, IQueryBuilder::PARAM_INT));
 		}
 		$select
-			->select('m.id')
+			->select(['m.id', 'm.sent_at'])
 			->from($this->getTableName(), 'm')
 			->leftJoin('m', $this->getTableName(), 'm2', 'm.mailbox_id = m2.mailbox_id and m.thread_root_id = m2.thread_root_id and m.sent_at < m2.sent_at')
 			->where(...$wheres)

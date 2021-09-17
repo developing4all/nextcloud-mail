@@ -25,7 +25,9 @@ declare(strict_types=1);
 
 namespace OCA\Mail\Service\Search;
 
+use Exception;
 use Horde_Imap_Client;
+use InvalidArgumentException;
 use OCA\Mail\Account;
 use OCA\Mail\Contracts\IMailSearch;
 use OCA\Mail\Db\Mailbox;
@@ -109,7 +111,7 @@ class MailSearch implements IMailSearch {
 								 ?string $filter,
 								 ?int $cursor,
 								 ?int $limit,
-								 string $sortOrder): array {
+								 string $sortOrder): Result {
 		if ($mailbox->hasLocks($this->timeFactory->getTime())) {
 			throw MailboxLockedException::from($mailbox);
 		}
@@ -130,12 +132,15 @@ class MailSearch implements IMailSearch {
 			$query->addFlag(Flag::not(Flag::DELETED));
 		}
 
-		return $this->previewEnhancer->process(
-			$account,
-			$mailbox,
-			$this->messageMapper->findByIds($account->getUserId(),
-				$this->getIdsLocally($account, $mailbox, $query, $limit, $sortOrder)
-			)
+		return new Result(
+				$this->previewEnhancer->process(
+				$account,
+				$mailbox,
+				$this->messageMapper->findByIds($account->getUserId(),
+					$this->getIdsLocally($account, $mailbox, $query, $limit, $sortOrder)
+				)
+			),
+			$this->messageMapper->findLastMessageTimestamp($account, $mailbox, $query, $sortOrder)
 		);
 	}
 
