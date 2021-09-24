@@ -37,7 +37,8 @@
 				{{ t('mail', 'Import into calendar') }}
 			</ActionButton>
 			<ActionButton icon="icon-download"
-				class="attachment-download">
+				class="attachment-download"
+				@click="download">
 				{{ t('mail', 'Download attachment') }}
 			</ActionButton>
 			<ActionButton
