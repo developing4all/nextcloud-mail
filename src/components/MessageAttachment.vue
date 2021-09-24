@@ -27,7 +27,7 @@
 			:title="label">{{ name }}
 			<span class="attachment-size">({{ humanReadable(size) }})</span>
 		</span>
-		<Actions>
+		<Actions :boundaries-element="boundariesElement">
 			<ActionButton
 				v-if="isCalendarEvent"
 				class="attachment-import calendar"
@@ -142,6 +142,9 @@ export default {
 					action: this.importCalendar(cal.url),
 				}
 			})
+		},
+		boundariesElement() {
+			return document.querySelector('#content-vue')
 		},
 	},
 	methods: {
