@@ -78,8 +78,9 @@ export default {
 			} catch {
 				logger.debug('Could not fetch avatar', { email: this.email })
 			}
-			this.loading = false
 		}
+
+		this.loading = false
 	},
 }
 </script>
